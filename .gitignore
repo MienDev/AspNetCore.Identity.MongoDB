@@ -1,0 +1,17 @@
+
+# IDE
+**/.vs
+**/.vscode
+
+# Temp data
+
+**/bin/debug
+**/obj/debug
+
+# node
+**/node_modules
+
+
+# other
+
+project.lock.json
