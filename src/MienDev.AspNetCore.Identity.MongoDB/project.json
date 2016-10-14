@@ -1,0 +1,18 @@
+{
+  "title": "MienDev.AspNetCore.Identity.MongoDB",
+  "description": "A MongoDB adapter of aspnet/Identity.",
+  "authors": [
+    "Mien Wu"
+  ],
+  "version": "0.0.1",
+  "dependencies": {
+    "NETStandard.Library": "1.6.0",
+    "Microsoft.aspnetcore.Identity": "1.0.0",
+    "MongoDB.Driver": "2.3.0"
+  },
+  "frameworks": {
+    "netstandard1.6": {
+      "imports": "dnxcore50"
+    }
+  }
+}
