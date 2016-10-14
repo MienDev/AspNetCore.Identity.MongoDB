@@ -9,6 +9,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BF08C41C-24F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7C8A7711-E379-46BB-869B-F9D46853AEC6}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "MienDev.AspNetCore.Identity.MongoDB.IntegratedTests", "..\tests\MienDev.AspNetCore.Identity.MongoDB.IntegratedTests\MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.xproj", "{7BFC8E81-2D1E-409D-B061-EF515246D4CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -19,11 +21,16 @@ Global
 		{BA20F9FD-C4A9-49CA-9226-6755E339A513}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA20F9FD-C4A9-49CA-9226-6755E339A513}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BA20F9FD-C4A9-49CA-9226-6755E339A513}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7BFC8E81-2D1E-409D-B061-EF515246D4CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7BFC8E81-2D1E-409D-B061-EF515246D4CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7BFC8E81-2D1E-409D-B061-EF515246D4CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7BFC8E81-2D1E-409D-B061-EF515246D4CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{BA20F9FD-C4A9-49CA-9226-6755E339A513} = {BF08C41C-24F2-4ADD-BE8F-DD0676C57130}
+		{7BFC8E81-2D1E-409D-B061-EF515246D4CF} = {7C8A7711-E379-46BB-869B-F9D46853AEC6}
 	EndGlobalSection
 EndGlobal
