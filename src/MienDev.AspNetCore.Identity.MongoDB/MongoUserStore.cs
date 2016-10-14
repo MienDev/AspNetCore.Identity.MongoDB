@@ -12,7 +12,9 @@ using MongoDB.Driver;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
-    public class MongoUserStore<TUser> :
+    
+
+    public class MongoUserStore<TUser,TRole,TContext> :
             IUserStore<TUser>,
             IUserLoginStore<TUser>,
             IUserClaimStore<TUser>,
@@ -22,7 +24,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             IUserEmailStore<TUser>,
             IUserLockoutStore<TUser>,
             IUserPhoneNumberStore<TUser>
-        where TUser : MongoIdentityUser
+        where TUser : IdentityUser
 
     {
         #region Privates and contructor
@@ -346,7 +348,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             }
             user.UserName = userName;
             // return TaskCache.CompletedTask;
-            return Task.CompletedTask;
+            return Task.CompletedTask;//.CompletedTask;
         }
 
         #endregion 

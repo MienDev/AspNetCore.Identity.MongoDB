@@ -8,35 +8,36 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 {
     /// <summary>
     /// Class for Identity User
+    /// keep the same name with entityframework Store
     /// </summary>
-    public class MongoIdentityUser
+    public class IdentityUser
     {
         //private readonly List<MongoUserClaim> _claims;
         //private readonly List<MongoUserLogin> _logins;
 
         /// <summary>
-        /// Initializes a new instance of <see cref="MongoIdentityUser"/>.
+        /// Initializes a new instance of <see cref="IdentityUser"/>.
         /// </summary>
         /// <remarks>
         /// The Id property is initialized to from a new GUID string value.
         /// </remarks>
-        public MongoIdentityUser()
+        public IdentityUser()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of <see cref="MongoIdentityUser"/>.
+        /// Initializes a new instance of <see cref="IdentityUser"/>.
         /// </summary>
         /// <param name="userName">The user name.</param>
         /// <remarks>
         /// The Id property is initialized to from a new GUID string value.
         /// </remarks>
-        public MongoIdentityUser(string userName) : this()
+        public IdentityUser(string userName) : this()
         {
             UserName = userName;
         }
 
-        public MongoIdentityUser(string userName, string userEmail) : this(userName)
+        public IdentityUser(string userName, string userEmail) : this(userName)
         {
             Email = new MongoUserEmail(userEmail);
         }

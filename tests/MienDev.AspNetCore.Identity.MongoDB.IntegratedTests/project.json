@@ -44,7 +44,7 @@
       "version": "1.0.0-preview2-final",
       "type": "build"
     },
-    "MongoDB.Driver": "2.3.0"
+    "MienDev.AspNetCore.Identity.MongoDB": "0.0.1-*"
   },
 
   "tools": {

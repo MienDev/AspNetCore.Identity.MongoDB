@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using MienDev.AspNetCore.Identity.MongoDB;
 
 namespace MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Models
 {

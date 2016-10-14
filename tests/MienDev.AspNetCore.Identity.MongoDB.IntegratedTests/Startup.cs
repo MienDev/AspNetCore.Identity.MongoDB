@@ -4,12 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Data;
+using MienDev.AspNetCore.Identity.MongoDB;
 using MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Models;
 using MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Services;
 
@@ -40,11 +38,14 @@ namespace MienDev.AspNetCore.Identity.MongoDB.IntegratedTests
         public void ConfigureServices(IServiceCollection services)
         {
             // Add framework services.
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            //services.AddDbContext<ApplicationDbContext>(options =>
+            //    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddMongoIdentity<ApplicationUser>(Configuration.GetSection("mongodb"));
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>()
+                //.AddEntityFrameworkStores<ApplicationDbContext>()
+                //.AddMongoDbStores()
                 .AddDefaultTokenProviders();
 
             services.AddMvc();

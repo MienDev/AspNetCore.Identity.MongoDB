@@ -34,13 +34,13 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         {
             RegisterConventions();
 
-            BsonClassMap.RegisterClassMap<MongoIdentityUser>(cm =>
+            BsonClassMap.RegisterClassMap<IdentityUser>(cm =>
             {
                 cm.AutoMap();
                 cm.SetIdMember(cm.GetMemberMap(c => c.Id));
                 // todo: check this
                 // cm.MapCreator(user => new MongoIdentityUser(user.UserName, user.Email));
-                cm.MapCreator(user => new MongoIdentityUser(user.UserName));
+                cm.MapCreator(user => new IdentityUser(user.UserName));
             });
 
             BsonClassMap.RegisterClassMap<MongoUserClaim>(cm =>
@@ -81,7 +81,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         private static bool IsConventionApplicable(Type type)
         {
-            return type == typeof(MongoIdentityUser)
+            return type == typeof(IdentityUser)
                    || type == typeof(MongoUserClaim)
                    || type == typeof(MongoUserContactRecord)
                    || type == typeof(MongoUserEmail)

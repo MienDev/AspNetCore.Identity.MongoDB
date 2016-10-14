@@ -11,6 +11,8 @@ using Microsoft.Extensions.Logging;
 using MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Models;
 using MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Models.AccountViewModels;
 using MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Services;
+using MienDev.AspNetCore.Identity.MongoDB;
+using MienDev.AspNetCore.Identity.MongoDB.Models;
 
 namespace MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Controllers
 {
@@ -105,7 +107,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser { UserName = model.Email, Email = new MongoUserEmail(model.Email) };
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
@@ -207,7 +209,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.Controllers
                 {
                     return View("ExternalLoginFailure");
                 }
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser { UserName = model.Email, Email = new MongoUserEmail(model.Email) };
                 var result = await _userManager.CreateAsync(user);
                 if (result.Succeeded)
                 {

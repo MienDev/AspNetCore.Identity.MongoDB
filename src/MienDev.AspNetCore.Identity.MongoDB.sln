@@ -11,6 +11,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7C8A7711
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "MienDev.AspNetCore.Identity.MongoDB.IntegratedTests", "..\tests\MienDev.AspNetCore.Identity.MongoDB.IntegratedTests\MienDev.AspNetCore.Identity.MongoDB.IntegratedTests.xproj", "{7BFC8E81-2D1E-409D-B061-EF515246D4CF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EE227288-FBD6-410A-BA43-CB5C2D4CDABE}"
+	ProjectSection(SolutionItems) = preProject
+		..\tests\global.json = ..\tests\global.json
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
