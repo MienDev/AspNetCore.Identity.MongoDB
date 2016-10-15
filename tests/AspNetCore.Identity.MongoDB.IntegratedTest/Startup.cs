@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
+using MienDev.AspNetCore.Identity.MongoDB;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using AspNetCore.Identity.MongoDB.IntegratedTest.Data;
 using AspNetCore.Identity.MongoDB.IntegratedTest.Models;
 using AspNetCore.Identity.MongoDB.IntegratedTest.Services;
 
@@ -40,11 +34,13 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest
         public void ConfigureServices(IServiceCollection services)
         {
             // Add framework services.
-            services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            // services.AddDbContext<ApplicationDbContext>(options =>
+            //     options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+            services.AddMongoIdentity<ApplicationUser, IdentityRole>(Configuration.GetSection("mongoIdentity"));
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
-                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddMongoIdentityStores()
+                // .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
 
             services.AddMvc();
@@ -63,7 +59,7 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseDatabaseErrorPage();
+                // app.UseDatabaseErrorPage();
                 app.UseBrowserLink();
             }
             else

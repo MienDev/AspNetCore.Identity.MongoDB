@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using AspNetCore.Identity.MongoDB.IntegratedTest.Models;
 using AspNetCore.Identity.MongoDB.IntegratedTest.Models.AccountViewModels;
 using AspNetCore.Identity.MongoDB.IntegratedTest.Services;
+using MienDev.AspNetCore.Identity.MongoDB.Models;
 
 namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
 {
@@ -59,7 +60,10 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
             {
                 // This doesn't count login failures towards account lockout
                 // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-                var result = await _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe, lockoutOnFailure: false);
+                var result =
+                    await
+                        _signInManager.PasswordSignInAsync(model.Email, model.Password, model.RememberMe,
+                            lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
                     _logger.LogInformation(1, "User logged in.");
@@ -67,7 +71,7 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
                 }
                 if (result.RequiresTwoFactor)
                 {
-                    return RedirectToAction(nameof(SendCode), new { ReturnUrl = returnUrl, RememberMe = model.RememberMe });
+                    return RedirectToAction(nameof(SendCode), new {ReturnUrl = returnUrl, RememberMe = model.RememberMe});
                 }
                 if (result.IsLockedOut)
                 {
@@ -105,7 +109,7 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
             ViewData["ReturnUrl"] = returnUrl;
             if (ModelState.IsValid)
             {
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser {UserName = model.Email, Email = new UserEmail(model.Email)};
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
@@ -145,7 +149,7 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
         public IActionResult ExternalLogin(string provider, string returnUrl = null)
         {
             // Request a redirect to the external login provider.
-            var redirectUrl = Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = returnUrl });
+            var redirectUrl = Url.Action("ExternalLoginCallback", "Account", new {ReturnUrl = returnUrl});
             var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
             return Challenge(properties, provider);
         }
@@ -168,7 +172,8 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
             }
 
             // Sign in the user with this external login provider if the user already has a login.
-            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
+            var result =
+                await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
             if (result.Succeeded)
             {
                 _logger.LogInformation(5, "User logged in with {Name} provider.", info.LoginProvider);
@@ -176,7 +181,7 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
             }
             if (result.RequiresTwoFactor)
             {
-                return RedirectToAction(nameof(SendCode), new { ReturnUrl = returnUrl });
+                return RedirectToAction(nameof(SendCode), new {ReturnUrl = returnUrl});
             }
             if (result.IsLockedOut)
             {
@@ -188,7 +193,7 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
                 ViewData["ReturnUrl"] = returnUrl;
                 ViewData["LoginProvider"] = info.LoginProvider;
                 var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-                return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = email });
+                return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel {Email = email});
             }
         }
 
@@ -197,7 +202,8 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ExternalLoginConfirmation(ExternalLoginConfirmationViewModel model, string returnUrl = null)
+        public async Task<IActionResult> ExternalLoginConfirmation(ExternalLoginConfirmationViewModel model,
+            string returnUrl = null)
         {
             if (ModelState.IsValid)
             {
@@ -207,7 +213,7 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
                 {
                     return View("ExternalLoginFailure");
                 }
-                var user = new ApplicationUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser {UserName = model.Email, Email = new UserEmail(model.Email)};
                 var result = await _userManager.CreateAsync(user);
                 if (result.Succeeded)
                 {
@@ -347,8 +353,10 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
                 return View("Error");
             }
             var userFactors = await _userManager.GetValidTwoFactorProvidersAsync(user);
-            var factorOptions = userFactors.Select(purpose => new SelectListItem { Text = purpose, Value = purpose }).ToList();
-            return View(new SendCodeViewModel { Providers = factorOptions, ReturnUrl = returnUrl, RememberMe = rememberMe });
+            var factorOptions =
+                userFactors.Select(purpose => new SelectListItem {Text = purpose, Value = purpose}).ToList();
+            return
+                View(new SendCodeViewModel {Providers = factorOptions, ReturnUrl = returnUrl, RememberMe = rememberMe});
         }
 
         //
@@ -386,7 +394,8 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
                 await _smsSender.SendSmsAsync(await _userManager.GetPhoneNumberAsync(user), message);
             }
 
-            return RedirectToAction(nameof(VerifyCode), new { Provider = model.SelectedProvider, ReturnUrl = model.ReturnUrl, RememberMe = model.RememberMe });
+            return RedirectToAction(nameof(VerifyCode),
+                new {Provider = model.SelectedProvider, ReturnUrl = model.ReturnUrl, RememberMe = model.RememberMe});
         }
 
         //
@@ -401,7 +410,7 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
             {
                 return View("Error");
             }
-            return View(new VerifyCodeViewModel { Provider = provider, ReturnUrl = returnUrl, RememberMe = rememberMe });
+            return View(new VerifyCodeViewModel {Provider = provider, ReturnUrl = returnUrl, RememberMe = rememberMe});
         }
 
         //
@@ -419,7 +428,10 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
             // The following code protects for brute force attacks against the two factor codes.
             // If a user enters incorrect codes for a specified amount of time then the user account
             // will be locked out for a specified amount of time.
-            var result = await _signInManager.TwoFactorSignInAsync(model.Provider, model.Code, model.RememberMe, model.RememberBrowser);
+            var result =
+                await
+                    _signInManager.TwoFactorSignInAsync(model.Provider, model.Code, model.RememberMe,
+                        model.RememberBrowser);
             if (result.Succeeded)
             {
                 return RedirectToLocal(model.ReturnUrl);

@@ -1,6 +1,5 @@
 ﻿{
   "userSecretsId": "aspnet-AspNetCore.Identity.MongoDB.IntegratedTest-d401f4de-ee43-4655-b093-f114c29b6a0d",
-
   "dependencies": {
     "Microsoft.NETCore.App": {
       "version": "1.0.1",
@@ -42,9 +41,9 @@
       "version": "1.0.0-preview2-final",
       "type": "build"
     },
-    "MienDev.AspNetCore.Identity.MongoDB": "0.0.1-*"
+    "MongoDB.Driver": "2.3.0",
+    "MienDev.AspNetCore.Identity.MongoDB": "1.0.0"
   },
-
   "tools": {
     "BundlerMinifier.Core": "2.0.238",
     "Microsoft.AspNetCore.Razor.Tools": "1.0.0-preview2-final",
@@ -57,7 +56,6 @@
       ]
     }
   },
-
   "frameworks": {
     "netcoreapp1.0": {
       "imports": [
@@ -66,18 +64,15 @@
       ]
     }
   },
-
   "buildOptions": {
     "emitEntryPoint": true,
     "preserveCompilationContext": true
   },
-
   "runtimeOptions": {
     "configProperties": {
       "System.GC.Server": true
     }
   },
-
   "publishOptions": {
     "include": [
       "wwwroot",
@@ -86,9 +81,13 @@
       "web.config"
     ]
   },
-
   "scripts": {
-    "prepublish": [ "bower install", "dotnet bundle" ],
-    "postpublish": [ "dotnet publish-iis --publish-folder %publish:OutputPath% --framework %publish:FullTargetFramework%" ]
+    "prepublish": [
+      "bower install",
+      "dotnet bundle"
+    ],
+    "postpublish": [
+      "dotnet publish-iis --publish-folder %publish:OutputPath% --framework %publish:FullTargetFramework%"
+    ]
   }
 }
