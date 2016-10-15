@@ -2,13 +2,14 @@
 using System.Threading;
 using Microsoft.AspNetCore.Identity;
 using MienDev.AspNetCore.Identity.MongoDB.Models;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
     /// <summary>
-    /// Config class for MongoDB
+    /// Mongo Config
     /// </summary>
     internal static class MongoConfig
     {
@@ -38,8 +39,6 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             {
                 cm.AutoMap();
                 cm.SetIdMember(cm.GetMemberMap(c => c.Id));
-                // todo: check this
-                // cm.MapCreator(user => new MongoIdentityUser(user.UserName, user.Email));
                 cm.MapCreator(user => new IdentityUser(user.UserName));
             });
 
@@ -74,6 +73,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             {
                 new IgnoreIfNullConvention(false),
                 new CamelCaseElementNameConvention(),
+                new EnumRepresentationConvention(BsonType.String)
             };
 
             ConventionRegistry.Register("AspNetCore.Identity.MongoDB", pack, IsConventionApplicable);
@@ -87,9 +87,6 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                    || type == typeof(UserEmail)
                    || type == typeof(UserLogin)
                    || type == typeof(UserMobile)
-                //|| type == typeof(ConfirmationOccurrence)
-                //|| type == typeof(FutureOccurrence)
-                //|| type == typeof(Occurrence);
                 ;
         }
     }

@@ -40,9 +40,11 @@ namespace Microsoft.Extensions.DependencyInjection
             // TODO: Sigleliton?
             services.AddScoped<IMongoDatabase>(provider =>
             {
-                var options = provider.GetService<IOptions<MongoIdentityOption>>();
-                var client = new MongoClient(options.Value.ConnectionString);
-                return client.GetDatabase(options.Value.DatabaseName);
+                var options = provider.GetService<IOptions<MongoIdentityOption>>().Value;
+                options.ThrowIfNull(nameof(options));
+
+                var client = new MongoClient(options.ConnectionString);
+                return client.GetDatabase(options.DatabaseName);
             });
 
             // 3. Get IMongoCollection<Type>
@@ -69,34 +71,31 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="builder">The <see cref="IdentityBuilder"/> instance this method extends.</param>
         /// <returns>The <see cref="IdentityBuilder"/> instance this method extends.</returns>
         public static IdentityBuilder AddMongoIdentityStores(this IdentityBuilder builder)
-            //where TContext : IMongoDatabase
         {
+
             builder.Services.TryAdd(GetDefaultServices(builder.UserType, builder.RoleType));
-
-            //services.AddSingleton<IUserStore<MongoIdentityUser>>(provider =>
-            //{
-            //    var options = provider.GetService<IOptions<MongoDbSettings>>();
-            //    var client = new MongoClient(options.Value.ConnectionString);
-            //    var database = client.GetDatabase(options.Value.DatabaseName);
-            //    var loggerFactory = provider.GetService<ILoggerFactory>();
-
-            //    return new MongoUserStore<MongoIdentityUser>(database, loggerFactory);
-            //});
 
             return builder;
         }
 
         private static IServiceCollection GetDefaultServices(Type userType, Type roleType)
         {
-            Type IUserStoreType = typeof(IUserStore<>).MakeGenericType(userType);
-            Type IRoleStoreType = typeof(IRoleStore<>).MakeGenericType(roleType);
+            // 1. get interface type IUserStore<>, IRoleStore<>
+            var userStoreInterfaceType = typeof(IUserStore<>).MakeGenericType(userType);
+            if (userStoreInterfaceType == null) throw new ArgumentNullException(nameof(userStoreInterfaceType));
 
+            var roleStoreInterfaceType = typeof(IRoleStore<>).MakeGenericType(roleType);
+            if (roleStoreInterfaceType == null) throw new ArgumentNullException(nameof(roleStoreInterfaceType));
+
+            // 2. get class type 
             var userStoreType = typeof(UserStore<,>).MakeGenericType(userType, roleType);
             var roleStoreType = typeof(RoleStore<>).MakeGenericType(roleType);
-
+ 
+            // 3. add to some new service collection
             var services = new ServiceCollection();
-            services.AddScoped(IUserStoreType, userStoreType);
-            services.AddScoped(IRoleStoreType, roleStoreType);
+            services.AddScoped(userStoreInterfaceType, userStoreType);
+            services.AddScoped(roleStoreInterfaceType, roleStoreType);
+
             return services;
         }
     }

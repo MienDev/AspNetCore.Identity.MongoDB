@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MienDev.AspNetCore.Identity.MongoDB.Utils
 {
@@ -10,16 +7,13 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Utils
         /// <summary>
         /// Throw exception if para null
         /// A convenint method
-        /// However, use this method, you would miss the real param Name information, 
         /// since 'param' is formal parameter.
         /// </summary>
-        /// <param name="param"></param>
-        public static void ThrowIfNull(this object param)
+        /// <param name="obj"></param>
+        /// <param name="message">show the message that about this error</param>
+        public static void ThrowIfNull(this object obj, string message = null)
         {
-            if (param == null)
-            {
-                throw new ArgumentNullException(nameof(param));
-            }
+            if (obj == null) throw new ArgumentNullException(message);
         }
     }
 }
