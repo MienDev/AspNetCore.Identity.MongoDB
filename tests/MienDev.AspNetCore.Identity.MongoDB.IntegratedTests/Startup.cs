@@ -41,11 +41,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB.IntegratedTests
             //services.AddDbContext<ApplicationDbContext>(options =>
             //    options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
 
-            services.AddMongoIdentity<ApplicationUser>(Configuration.GetSection("mongodb"));
+            services.AddMongoIdentity<ApplicationUser,IdentityRole>(Configuration.GetSection("MongoIdentity"));
 
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 //.AddEntityFrameworkStores<ApplicationDbContext>()
-                //.AddMongoDbStores()
+                .AddMongoIdentityStores()
                 .AddDefaultTokenProviders();
 
             services.AddMvc();

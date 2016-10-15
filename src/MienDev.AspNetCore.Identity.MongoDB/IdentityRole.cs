@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MienDev.AspNetCore.Identity.MongoDB.Models;
+using MongoDB.Bson;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
@@ -9,7 +10,10 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <summary>
         /// Initializes a new instance of <see cref="IdentityRole"/>.
         /// </summary>
-        public IdentityRole() { }
+        public IdentityRole()
+        {
+            Id = ObjectId.GenerateNewId().ToString();
+        }
 
         /// <summary>
         /// Initializes a new instance of <see cref="IdentityRole"/>.
@@ -23,12 +27,12 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <summary>
         /// Gets or sets the primary key for this role.
         /// </summary>
-        public virtual string Id { get; set; }
+        public string Id { get; set; }
 
         /// <summary>
         /// Gets or sets the name for this role.
         /// </summary>
-        public virtual string Name { get; set; }
+        public string Name { get; set; }
 
         /// <summary>
         ///     Normalized role name
@@ -43,6 +47,6 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <summary>
         ///     Navigation property for claims in the role
         /// </summary>
-        public virtual ICollection<MongoUserClaim> Claims { get; } = new List<MongoUserClaim>();
+        public virtual ICollection<UserClaim> Claims { get; } = new List<UserClaim>();
     }
 }

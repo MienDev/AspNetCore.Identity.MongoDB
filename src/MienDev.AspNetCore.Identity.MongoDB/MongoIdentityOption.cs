@@ -5,7 +5,10 @@ using System.Threading.Tasks;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
-    public class MongoOption
+    /// <summary>
+    /// MongoIdentity Configurature Option
+    /// </summary>
+    public class MongoIdentityOption
     {
         public string ConnectionString { get; set; }
 

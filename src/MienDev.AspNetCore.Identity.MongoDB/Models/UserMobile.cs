@@ -3,9 +3,9 @@ using MienDev.AspNetCore.Identity.MongoDB.Utils;
 
 namespace MienDev.AspNetCore.Identity.MongoDB.Models
 {
-    public class MongoUserMobile : MongoUserContactRecord
+    public class UserMobile : UserContactRecord
     {
-        public MongoUserMobile(string phone)
+        public UserMobile(string phone)
         {
             if (phone.IsEmpty())
             {

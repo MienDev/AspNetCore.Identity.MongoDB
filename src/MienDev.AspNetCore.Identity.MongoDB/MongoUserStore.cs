@@ -12,7 +12,7 @@ using MongoDB.Driver;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
-    public class MongoUserStore<TUser,TRole,TContext> :
+    public class UserStore<TUser,TRole> :
             IUserStore<TUser>,
             IUserLoginStore<TUser>,
             IUserClaimStore<TUser>,
@@ -28,30 +28,22 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         #region Privates and contructor
 
         private bool _disposed;
+        private readonly IMongoCollection<TUser> _users;
+        private readonly ILogger _logger;
+
         private static bool _initialized;
         private static object _initializationLock = new object();
         private static object _initializationTarget;
-        private readonly IMongoCollection<TUser> _usersCollection;
-        private readonly ILogger _logger;
-
-        static MongoUserStore()
+        static UserStore()
         {
             MongoConfig.EnsureConfigured();
         }
 
-        public MongoUserStore(IMongoDatabase database, ILoggerFactory loggerFactory)
+        public UserStore(IMongoCollection<TUser> users, ILoggerFactory loggerFactory)
         {
-            if (database == null)
-            {
-                throw new ArgumentNullException(nameof(database));
-            }
+            ThrowIfParaNull(users);
 
-            if (loggerFactory == null)
-            {
-                throw new ArgumentNullException(nameof(loggerFactory));
-            }
-
-            _usersCollection = database.GetCollection<TUser>("users");
+            _users = users;
             _logger = loggerFactory.CreateLogger(GetType().Name);
 
             EnsureIndicesCreatedAsync().GetAwaiter().GetResult();
@@ -79,7 +71,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await _usersCollection.InsertOneAsync(user, null, cancellationToken).ConfigureAwait(false);
+            await _users.InsertOneAsync(user, null, cancellationToken).ConfigureAwait(false);
 
             return IdentityResult.Success;
         }
@@ -112,7 +104,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Builders<TUser>.Filter.Eq(u => u.DeletedOn, null)
             );
 
-            var replaceResult = await _usersCollection.ReplaceOneAsync(
+            var replaceResult = await _users.ReplaceOneAsync(
                     query, user,
                     new UpdateOptions { IsUpsert = false }, // no insertion if not exsist
                     cancellationToken = default(CancellationToken))
@@ -151,7 +143,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             var update = Builders<TUser>.Update.Set(u => u.DeletedOn, user.DeletedOn);
 
             await
-                _usersCollection.UpdateOneAsync(query, update,
+                _users.UpdateOneAsync(query, update,
                         cancellationToken: cancellationToken = default(CancellationToken))
                     .ConfigureAwait(false);
 
@@ -187,7 +179,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Builders<TUser>.Filter.Eq(u => u.DeletedOn, null)
             );
 
-            return _usersCollection.Find(query).FirstOrDefaultAsync(cancellationToken);
+            return _users.Find(query).FirstOrDefaultAsync(cancellationToken);
         }
 
         #endregion
@@ -219,7 +211,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Builders<TUser>.Filter.Eq(u => u.DeletedOn, null)
             );
 
-            return _usersCollection.Find(query).FirstOrDefaultAsync(cancellationToken);
+            return _users.Find(query).FirstOrDefaultAsync(cancellationToken);
         }
 
         #endregion
@@ -386,7 +378,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 throw new InvalidOperationException("Login already exists.");
             }
 
-            user.AddLogin(new MongoUserLogin(login));
+            user.AddLogin(new UserLogin(login));
 
             return Task.FromResult(0);
         }
@@ -500,15 +492,15 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             var notDeletedQuery = Builders<TUser>.Filter.Eq(u => u.DeletedOn, null);
             var loginQuery = Builders<TUser>.Filter.ElemMatch(usr => usr.Logins,
-                Builders<MongoUserLogin>.Filter.And(
-                    Builders<MongoUserLogin>.Filter.Eq(lg => lg.LoginProvider, loginProvider),
-                    Builders<MongoUserLogin>.Filter.Eq(lg => lg.ProviderKey, providerKey)
+                Builders<UserLogin>.Filter.And(
+                    Builders<UserLogin>.Filter.Eq(lg => lg.LoginProvider, loginProvider),
+                    Builders<UserLogin>.Filter.Eq(lg => lg.ProviderKey, providerKey)
                 )
             );
 
             var query = Builders<TUser>.Filter.And(notDeletedQuery, loginQuery);
 
-            return _usersCollection.Find(query).FirstOrDefaultAsync(cancellationToken);
+            return _users.Find(query).FirstOrDefaultAsync(cancellationToken);
         }
 
         #endregion 
@@ -593,7 +585,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 throw new ArgumentNullException(nameof(newClaim));
             }
 
-            user.RemoveClaim(new MongoUserClaim(claim));
+            user.RemoveClaim(new UserClaim(claim));
             user.AddClaim(newClaim);
 
             return Task.FromResult(0);
@@ -619,7 +611,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             foreach (var claim in claims)
             {
-                user.RemoveClaim(new MongoUserClaim(claim));
+                user.RemoveClaim(new UserClaim(claim));
             }
 
             return Task.FromResult(0);
@@ -647,14 +639,14 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             var notDeletedQuery = Builders<TUser>.Filter.Eq(u => u.DeletedOn, null);
             var claimQuery = Builders<TUser>.Filter.ElemMatch(usr => usr.Claims,
-                Builders<MongoUserClaim>.Filter.And(
-                    Builders<MongoUserClaim>.Filter.Eq(c => c.ClaimType, claim.Type),
-                    Builders<MongoUserClaim>.Filter.Eq(c => c.ClaimValue, claim.Value)
+                Builders<UserClaim>.Filter.And(
+                    Builders<UserClaim>.Filter.Eq(c => c.ClaimType, claim.Type),
+                    Builders<UserClaim>.Filter.Eq(c => c.ClaimValue, claim.Value)
                 )
             );
 
             var query = Builders<TUser>.Filter.And(notDeletedQuery, claimQuery);
-            var users = await _usersCollection
+            var users = await _users
                 .FindSync(query, null, cancellationToken)
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
@@ -809,7 +801,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Builders<TUser>.Filter.Eq(u => u.DeletedOn, null)
             );
 
-            return _usersCollection.Find(query).FirstOrDefaultAsync(cancellationToken);
+            return _users.Find(query).FirstOrDefaultAsync(cancellationToken);
         }
         #endregion
 
@@ -1227,7 +1219,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Projection = Builders<TUser>.Projection.Expression(usr => usr.AccessFailedCount)
             };
 
-            var newCount = await _usersCollection
+            var newCount = await _users
                 .FindOneAndUpdateAsync(filter, update, findOneAndUpdateOptions, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -1368,9 +1360,9 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             var tasks = new[]
             {
-                _usersCollection.Indexes.CreateOneAsync(emailKeyBuilder,
+                _users.Indexes.CreateOneAsync(emailKeyBuilder,
                     new CreateIndexOptions {Unique = true, Name = indexNames.UniqueEmail}),
-                _usersCollection.Indexes.CreateOneAsync(loginKeyBuilder,
+                _users.Indexes.CreateOneAsync(loginKeyBuilder,
                     new CreateIndexOptions {Name = indexNames.Login})
             };
 
@@ -1379,7 +1371,8 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         #endregion
 
-        #region Dispose
+        #region ThrowIf
+
         /// <summary>
         /// Throws if this class has been disposed.
         /// </summary>
@@ -1392,12 +1385,34 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         }
 
         /// <summary>
-        /// Dispose the store
+        /// Dispose the stores
         /// </summary>
         public void Dispose()
         {
             _disposed = true;
-        } 
+        }
+
+        private void ThrowIfParaNull(params object[] para)
+        {
+            if (para.Length > 0 && para.Any(p => p == null))
+            {
+                throw new ArgumentNullException(nameof(para));
+            }
+        }
+
+        /// <summary>
+        /// ThrowIfCancelOrNull
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <param name="paras"></param>
+        private void ThrowIfCancelOrParaNull(CancellationToken cancellationToken, params object[] paras)
+        {
+            ThrowIfDisposed();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            ThrowIfParaNull(paras);
+        }
         #endregion
     }
 }

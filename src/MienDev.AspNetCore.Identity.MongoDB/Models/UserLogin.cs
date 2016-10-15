@@ -3,9 +3,9 @@ using Microsoft.AspNetCore.Identity;
 
 namespace MienDev.AspNetCore.Identity.MongoDB.Models
 {
-    public class MongoUserLogin : IEquatable<MongoUserLogin>, IEquatable<UserLoginInfo>
+    public class UserLogin : IEquatable<UserLogin>, IEquatable<UserLoginInfo>
     {
-        public MongoUserLogin(UserLoginInfo loginInfo)
+        public UserLogin(UserLoginInfo loginInfo)
         {
             if (loginInfo == null)
             {
@@ -21,7 +21,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
         public string ProviderKey { get; private set; }
         public string ProviderDisplayName { get; private set; }
 
-        public bool Equals(MongoUserLogin other)
+        public bool Equals(UserLogin other)
         {
             return other.LoginProvider.Equals(LoginProvider)
                 && other.ProviderKey.Equals(ProviderKey);

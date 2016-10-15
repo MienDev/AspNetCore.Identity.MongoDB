@@ -3,9 +3,9 @@ using System.Security.Claims;
 
 namespace MienDev.AspNetCore.Identity.MongoDB.Models
 {
-    public class MongoUserClaim : IEquatable<MongoUserClaim>, IEquatable<Claim>
+    public class UserClaim : IEquatable<UserClaim>, IEquatable<Claim>
     {
-        public MongoUserClaim(Claim claim)
+        public UserClaim(Claim claim)
         {
             if (claim == null)
             {
@@ -16,7 +16,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
             ClaimValue = claim.Value;
         }
 
-        public MongoUserClaim(string claimType, string claimValue)
+        public UserClaim(string claimType, string claimValue)
         {
             if (claimType == null)
             {
@@ -34,7 +34,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
         public string ClaimType { get; private set; }
         public string ClaimValue { get; private set; }
 
-        public bool Equals(MongoUserClaim other)
+        public bool Equals(UserClaim other)
         {
             return other.ClaimType.Equals(ClaimType)
                 && other.ClaimValue.Equals(ClaimValue);

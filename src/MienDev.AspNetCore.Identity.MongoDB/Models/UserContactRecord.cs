@@ -5,7 +5,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
     /// <summary>
     /// a class for contact such as emails, phones
     /// </summary>
-    public class MongoUserContactRecord : IEquatable<MongoUserContactRecord>
+    public class UserContactRecord : IEquatable<UserContactRecord>
     {
         #region Props
 
@@ -68,7 +68,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
         /// </summary>
         /// <param name="other"></param>
         /// <returns></returns>
-        public bool Equals(MongoUserContactRecord other)
+        public bool Equals(UserContactRecord other)
         {
             return other.NormalizedValue.Equals(NormalizedValue);
         } 

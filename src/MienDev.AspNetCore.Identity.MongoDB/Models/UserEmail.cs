@@ -3,17 +3,21 @@ using MienDev.AspNetCore.Identity.MongoDB.Utils;
 
 namespace MienDev.AspNetCore.Identity.MongoDB.Models
 {
-    public class MongoUserEmail : MongoUserContactRecord
+    /// <summary>
+    /// Email ContactRecord
+    /// </summary>
+    public class UserEmail : UserContactRecord
     {
-        public MongoUserEmail(string email = null)
+        #region Constructor
+        public UserEmail(string email = null)
         {
             if (email.IsEmpty())
             {
                 throw new ArgumentException($"{nameof(email)} is required.");
             }
-
             Value = email;
         }
+        #endregion
 
         public override ContactType Type => ContactType.Email;
 

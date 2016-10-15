@@ -43,28 +43,28 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 cm.MapCreator(user => new IdentityUser(user.UserName));
             });
 
-            BsonClassMap.RegisterClassMap<MongoUserClaim>(cm =>
+            BsonClassMap.RegisterClassMap<UserClaim>(cm =>
             {
                 cm.AutoMap();
-                cm.MapCreator(c => new MongoUserClaim(c.ClaimType, c.ClaimValue));
+                cm.MapCreator(c => new UserClaim(c.ClaimType, c.ClaimValue));
             });
 
-            BsonClassMap.RegisterClassMap<MongoUserEmail>(cm =>
+            BsonClassMap.RegisterClassMap<UserEmail>(cm =>
             {
                 cm.AutoMap();
-                cm.MapCreator(cr => new MongoUserEmail(cr.Value));
+                cm.MapCreator(cr => new UserEmail(cr.Value));
             });
 
-            BsonClassMap.RegisterClassMap<MongoUserMobile>(cm =>
+            BsonClassMap.RegisterClassMap<UserMobile>(cm =>
             {
                 cm.AutoMap();
-                cm.MapCreator(cr => new MongoUserMobile(cr.Value));
+                cm.MapCreator(cr => new UserMobile(cr.Value));
             });
 
-            BsonClassMap.RegisterClassMap<MongoUserLogin>(cm =>
+            BsonClassMap.RegisterClassMap<UserLogin>(cm =>
             {
                 cm.AutoMap();
-                cm.MapCreator(l => new MongoUserLogin(new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName)));
+                cm.MapCreator(l => new UserLogin(new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName)));
             });
         }
 
@@ -82,11 +82,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         private static bool IsConventionApplicable(Type type)
         {
             return type == typeof(IdentityUser)
-                   || type == typeof(MongoUserClaim)
-                   || type == typeof(MongoUserContactRecord)
-                   || type == typeof(MongoUserEmail)
-                   || type == typeof(MongoUserLogin)
-                   || type == typeof(MongoUserMobile)
+                   || type == typeof(UserClaim)
+                   || type == typeof(UserContactRecord)
+                   || type == typeof(UserEmail)
+                   || type == typeof(UserLogin)
+                   || type == typeof(UserMobile)
                 //|| type == typeof(ConfirmationOccurrence)
                 //|| type == typeof(FutureOccurrence)
                 //|| type == typeof(Occurrence);

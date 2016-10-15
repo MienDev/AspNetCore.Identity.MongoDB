@@ -3,12 +3,18 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using MienDev.AspNetCore.Identity.MongoDB.Models;
 using MienDev.AspNetCore.Identity.MongoDB.Utils;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
+    /// <summary>
+    /// Identity User with default role type
+    /// </summary>
     public class IdentityUser : IdentityUser<IdentityRole>
     {
-        
+        public IdentityUser() : base() { }
+        public IdentityUser(string userName) : base(userName) { }
     }
 
     /// <summary>
@@ -28,6 +34,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// </remarks>
         public IdentityUser()
         {
+            Id = ObjectId.GenerateNewId().ToString();
         }
 
         /// <summary>
@@ -44,28 +51,30 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         public IdentityUser(string userName, string userEmail) : this(userName)
         {
-            Email = new MongoUserEmail(userEmail);
+            Email = new UserEmail(userEmail);
         }
 
         /// <summary>
         /// Gets or sets the primary key for this user.
         /// </summary>
-        public virtual string Id { get; set; } = Guid.NewGuid().ToString("N");
+        public string Id { get; set; }
 
         /// <summary>
         /// Gets or sets the user name for this user.
         /// </summary>
-        public virtual string UserName { get; set; }
+        [BsonRequired]
+        public string UserName { get; set; }
 
         /// <summary>
         /// Gets or sets the normalized user name for this user.
         /// </summary>
-        public virtual string NormalizedUserName { get; set; }
+        public string NormalizedUserName { get; set; }
 
         /// <summary>
         /// Gets or sets the email address for this user.
         /// </summary>
-        public virtual MongoUserEmail Email { get; set; }
+        public UserEmail Email { get; set; }
+
 
         /// <summary>
         /// Gets or sets the normalized email address for this user.
@@ -96,7 +105,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <summary>
         /// Gets or sets a telephone number for the user.
         /// </summary>
-        public virtual MongoUserContactRecord PhoneNumber { get; set; }
+        public virtual UserContactRecord PhoneNumber { get; set; }
 
         /// <summary>
         /// Gets or sets a flag indicating if a user has confirmed their telephone address.
@@ -141,12 +150,12 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <summary>
         /// Navigation property for the claims this user possesses.
         /// </summary>
-        public virtual ICollection<MongoUserClaim> Claims { get; } = new List<MongoUserClaim>();
+        public virtual ICollection<UserClaim> Claims { get; } = new List<UserClaim>();
 
         /// <summary>
         /// Navigation property for this users login accounts.
         /// </summary>
-        public virtual ICollection<MongoUserLogin> Logins { get; } = new List<MongoUserLogin>();
+        public virtual ICollection<UserLogin> Logins { get; } = new List<UserLogin>();
         #endregion
 
         #region Addon (diffrent from aspnet/Identity/IdentityUser)
@@ -193,11 +202,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         public virtual void SetEmail(string email)
         {
-            var mongoUserEmail = new MongoUserEmail(email);
+            var mongoUserEmail = new UserEmail(email);
             SetEmail(mongoUserEmail);
         }
 
-        public virtual void SetEmail(MongoUserEmail mongoUserEmail)
+        public virtual void SetEmail(UserEmail mongoUserEmail)
         {
             Email = mongoUserEmail;
         }
@@ -214,11 +223,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         public virtual void SetPhoneNumber(string phoneNumber)
         {
-            var mongoUserPhoneNumber = new MongoUserMobile(phoneNumber);
+            var mongoUserPhoneNumber = new UserMobile(phoneNumber);
             SetPhoneNumber(mongoUserPhoneNumber);
         }
 
-        public virtual void SetPhoneNumber(MongoUserMobile mongoUserPhoneNumber)
+        public virtual void SetPhoneNumber(UserMobile mongoUserPhoneNumber)
         {
             PhoneNumber = mongoUserPhoneNumber;
         }
@@ -255,10 +264,10 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 throw new ArgumentNullException(nameof(claim));
             }
 
-            AddClaim(new MongoUserClaim(claim));
+            AddClaim(new UserClaim(claim));
         }
 
-        public virtual void AddClaim(MongoUserClaim mongoUserClaim)
+        public virtual void AddClaim(UserClaim mongoUserClaim)
         {
             if (mongoUserClaim == null)
             {
@@ -268,7 +277,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             Claims.Add(mongoUserClaim);
         }
 
-        public virtual void RemoveClaim(MongoUserClaim mongoUserClaim)
+        public virtual void RemoveClaim(UserClaim mongoUserClaim)
         {
             if (mongoUserClaim == null)
             {
@@ -278,7 +287,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             Claims.Remove(mongoUserClaim);
         }
 
-        public virtual void AddLogin(MongoUserLogin mongoUserLogin)
+        public virtual void AddLogin(UserLogin mongoUserLogin)
         {
             if (mongoUserLogin == null)
             {
@@ -288,7 +297,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             Logins.Add(mongoUserLogin);
         }
 
-        public virtual void RemoveLogin(MongoUserLogin mongoUserLogin)
+        public virtual void RemoveLogin(UserLogin mongoUserLogin)
         {
             if (mongoUserLogin == null)
             {
