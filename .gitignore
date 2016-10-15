@@ -6,7 +6,9 @@
 # Temp data
 
 **/bin/debug
+**/bin/Release
 **/obj/debug
+**/obj/Release
 
 # node
 **/node_modules
