@@ -12,8 +12,6 @@ using MongoDB.Driver;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
-    
-
     public class MongoUserStore<TUser,TRole,TContext> :
             IUserStore<TUser>,
             IUserLoginStore<TUser>,

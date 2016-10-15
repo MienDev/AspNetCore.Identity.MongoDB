@@ -13,7 +13,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
     public class MongoRoleStore<TRole>:
     IQueryableRoleStore<TRole>,
     IRoleClaimStore<TRole>
-    where TRole:class
+    where TRole:IdentityRole
     {
         private bool _disposed;
         private static bool _initialized;
@@ -56,7 +56,6 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         }
         #endregion
 
-
         #region DeleteAsync
         /// <summary>
         /// Deletes a role from the store as an asynchronous operation.
@@ -69,13 +68,15 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             //todo:
             await Task.FromResult(0);
             return IdentityResult.Success;
-        } 
+        }
         #endregion
 
+        #region GetRoleIdAsync
         public Task<string> GetRoleIdAsync(TRole role, CancellationToken cancellationToken)
         {
             throw new NotImplementedException();
-        }
+        } 
+        #endregion
 
         public Task<string> GetRoleNameAsync(TRole role, CancellationToken cancellationToken)
         {

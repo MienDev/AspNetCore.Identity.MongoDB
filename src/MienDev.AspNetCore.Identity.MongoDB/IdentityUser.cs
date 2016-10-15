@@ -6,11 +6,16 @@ using MienDev.AspNetCore.Identity.MongoDB.Utils;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
+    public class IdentityUser : IdentityUser<IdentityRole>
+    {
+        
+    }
+
     /// <summary>
     /// Class for Identity User
     /// keep the same name with entityframework Store
     /// </summary>
-    public class IdentityUser
+    public class IdentityUser<TUserRole>
     {
         //private readonly List<MongoUserClaim> _claims;
         //private readonly List<MongoUserLogin> _logins;
@@ -130,7 +135,8 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         ///// <summary>
         ///// Navigation property for the roles this user belongs to.
         ///// </summary>
-        //public virtual ICollection<TUserRole> Roles { get; } = new List<TUserRole>();
+        public virtual ICollection<TUserRole> Roles { get; set; } = new List<TUserRole>();
+        // public virtual ICollection<TUserRole> Roles { get; } = new List<TUserRole>();
 
         /// <summary>
         /// Navigation property for the claims this user possesses.

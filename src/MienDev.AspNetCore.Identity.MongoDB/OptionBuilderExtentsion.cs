@@ -13,7 +13,8 @@ namespace Microsoft.Extensions.DependencyInjection
 {
     public static class OptionBuilderExtentsion
     {
-        public static IServiceCollection AddMongoIdentity<TUser>(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddMongoIdentity<TUser>(this IServiceCollection services,
+            IConfiguration configuration)
             where TUser : IdentityUser
         {
             if (services == null)
@@ -53,9 +54,8 @@ namespace Microsoft.Extensions.DependencyInjection
         /// <param name="builder">The <see cref="IdentityBuilder"/> instance this method extends.</param>
         /// <returns>The <see cref="IdentityBuilder"/> instance this method extends.</returns>
         public static IdentityBuilder AddMongoDbStores<TContext>(this IdentityBuilder builder)
-            where TContext:IMongoDatabase
+            where TContext : IMongoDatabase
         {
-        
             builder.Services.TryAdd(GetDefaultServices(builder.UserType, builder.RoleType, typeof(TContext)));
 
             //services.AddSingleton<IUserStore<MongoIdentityUser>>(provider =>
