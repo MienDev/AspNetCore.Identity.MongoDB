@@ -2,13 +2,14 @@
 using System.Threading;
 using Microsoft.AspNetCore.Identity;
 using MienDev.AspNetCore.Identity.MongoDB.Models;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
     /// <summary>
-    /// Config class for MongoDB
+    /// Mongo Config
     /// </summary>
     internal static class MongoConfig
     {
@@ -34,37 +35,35 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         {
             RegisterConventions();
 
-            BsonClassMap.RegisterClassMap<MongoIdentityUser>(cm =>
+            BsonClassMap.RegisterClassMap<IdentityUser>(cm =>
             {
                 cm.AutoMap();
                 cm.SetIdMember(cm.GetMemberMap(c => c.Id));
-                // todo: check this
-                // cm.MapCreator(user => new MongoIdentityUser(user.UserName, user.Email));
-                cm.MapCreator(user => new MongoIdentityUser(user.UserName));
+                cm.MapCreator(user => new IdentityUser(user.UserName));
             });
 
-            BsonClassMap.RegisterClassMap<MongoUserClaim>(cm =>
+            BsonClassMap.RegisterClassMap<UserClaim>(cm =>
             {
                 cm.AutoMap();
-                cm.MapCreator(c => new MongoUserClaim(c.ClaimType, c.ClaimValue));
+                cm.MapCreator(c => new UserClaim(c.ClaimType, c.ClaimValue));
             });
 
-            BsonClassMap.RegisterClassMap<MongoUserEmail>(cm =>
+            BsonClassMap.RegisterClassMap<UserEmail>(cm =>
             {
                 cm.AutoMap();
-                cm.MapCreator(cr => new MongoUserEmail(cr.Value));
+                cm.MapCreator(cr => new UserEmail(cr.Value));
             });
 
-            BsonClassMap.RegisterClassMap<MongoUserMobile>(cm =>
+            BsonClassMap.RegisterClassMap<UserMobile>(cm =>
             {
                 cm.AutoMap();
-                cm.MapCreator(cr => new MongoUserMobile(cr.Value));
+                cm.MapCreator(cr => new UserMobile(cr.Value));
             });
 
-            BsonClassMap.RegisterClassMap<MongoUserLogin>(cm =>
+            BsonClassMap.RegisterClassMap<UserLogin>(cm =>
             {
                 cm.AutoMap();
-                cm.MapCreator(l => new MongoUserLogin(new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName)));
+                cm.MapCreator(l => new UserLogin(new UserLoginInfo(l.LoginProvider, l.ProviderKey, l.ProviderDisplayName)));
             });
         }
 
@@ -74,6 +73,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             {
                 new IgnoreIfNullConvention(false),
                 new CamelCaseElementNameConvention(),
+                new EnumRepresentationConvention(BsonType.String)
             };
 
             ConventionRegistry.Register("AspNetCore.Identity.MongoDB", pack, IsConventionApplicable);
@@ -81,15 +81,12 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         private static bool IsConventionApplicable(Type type)
         {
-            return type == typeof(MongoIdentityUser)
-                   || type == typeof(MongoUserClaim)
-                   || type == typeof(MongoUserContactRecord)
-                   || type == typeof(MongoUserEmail)
-                   || type == typeof(MongoUserLogin)
-                   || type == typeof(MongoUserMobile)
-                //|| type == typeof(ConfirmationOccurrence)
-                //|| type == typeof(FutureOccurrence)
-                //|| type == typeof(Occurrence);
+            return type == typeof(IdentityUser)
+                   || type == typeof(UserClaim)
+                   || type == typeof(UserContactRecord)
+                   || type == typeof(UserEmail)
+                   || type == typeof(UserLogin)
+                   || type == typeof(UserMobile)
                 ;
         }
     }
