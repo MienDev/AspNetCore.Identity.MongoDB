@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using MienDev.AspNetCore.Identity.MongoDB.Utils;
 
 namespace MienDev.AspNetCore.Identity.MongoDB.Models
@@ -6,6 +7,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
     /// <summary>
     /// Email ContactRecord
     /// </summary>
+    [TypeConverter(typeof(UserEmailConverter))]
     public class UserEmail : UserContactRecord
     {
         #region Constructor
