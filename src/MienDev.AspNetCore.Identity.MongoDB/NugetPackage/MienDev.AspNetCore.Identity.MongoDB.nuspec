@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>MienDev.AspNetCore.Identity.MongoDB</id>
+    <version>0.0.5</version>
+    <title>MienDev.AspNetCore.Identity.MongoDB</title>
+    <authors>Mien Wu</authors>
+    <owners>Mien</owners>
+    <licenseUrl>https://creativecommons.org/licenses/by/4.0/legalcode</licenseUrl>
+    <projectUrl>https://github.com/MienDev/AspNetCore.Identity.MongoDB</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>MienDev.AspNetCore.Identity.MongoDB</description>
+    <releaseNotes>Update</releaseNotes>
+    <copyright>Copyright 2016</copyright>
+    <tags>asp.net identity mongo</tags>
+    <dependencies>
+      <dependency id="Microsoft.Extensions.DependencyInjection" version="1.0.0" />
+      <dependency id="Microsoft.Extensions.Options.ConfigurationExtensions" version="1.0.0" />
+      <dependency id="Microsoft.aspnetcore.Identity" version="1.0.0" />
+      <dependency id="MongoDB.Driver" version="2.3.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="..\bin\release\**.dll" target="lib"></file>
+    <file src="..\readme.md" target=""></file>
+  </files>
+</package>

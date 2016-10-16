@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{7C8A7711
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{EE227288-FBD6-410A-BA43-CB5C2D4CDABE}"
 	ProjectSection(SolutionItems) = preProject
-		..\global.json = ..\global.json
+		..\tests\global.json = ..\tests\global.json
 	EndProjectSection
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "AspNetCore.Identity.MongoDB.IntegratedTest", "..\tests\AspNetCore.Identity.MongoDB.IntegratedTest\AspNetCore.Identity.MongoDB.IntegratedTest.xproj", "{CD794C24-D6E1-4908-AFE8-EA2A5FF69625}"
