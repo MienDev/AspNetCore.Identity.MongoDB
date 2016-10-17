@@ -2,7 +2,7 @@
 <package>
   <metadata>
     <id>MienDev.AspNetCore.Identity.MongoDB</id>
-    <version>0.0.5</version>
+    <version>0.0.7</version>
     <title>MienDev.AspNetCore.Identity.MongoDB</title>
     <authors>Mien Wu</authors>
     <owners>Mien</owners>
@@ -16,7 +16,7 @@
     <dependencies>
       <dependency id="Microsoft.Extensions.DependencyInjection" version="1.0.0" />
       <dependency id="Microsoft.Extensions.Options.ConfigurationExtensions" version="1.0.0" />
-      <dependency id="Microsoft.aspnetcore.Identity" version="1.0.0" />
+      <dependency id="Microsoft.AspNetCore.Identity" version="1.0.0" />
       <dependency id="MongoDB.Driver" version="2.3.0" />
     </dependencies>
   </metadata>

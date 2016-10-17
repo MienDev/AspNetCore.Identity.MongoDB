@@ -1335,7 +1335,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         private async Task EnsureIndicesCreatedAsync()
         {
             var obj = LazyInitializer.EnsureInitialized(ref _initializationTarget, ref _initialized,
-                ref _initializationLock, () => { return EnsureIndicesCreatedImplAsync(); });
+                ref _initializationLock, EnsureIndicesCreatedImplAsync);
 
             if (obj != null)
             {

@@ -21,7 +21,8 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             IUserTwoFactorStore<TUser>,
             IUserEmailStore<TUser>,
             IUserLockoutStore<TUser>,
-            IUserPhoneNumberStore<TUser>
+            IUserPhoneNumberStore<TUser>,
+            IQueryableUserStore<TUser>
         where TUser : MongoIdentityUser
 
     {
@@ -29,10 +30,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         private bool _disposed;
         private static bool _initialized;
-        private static object _initializationLock = new object();
-        private static object _initializationTarget;
+       private static object _initializationLock = new object();
+       private static object _initializationTarget;
         private readonly IMongoCollection<TUser> _usersCollection;
         private readonly ILogger _logger;
+       // private IQueryableUserStore<TUser> _queryableUserStoreImplementation;
 
         static MongoUserStore()
         {
@@ -57,6 +59,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             EnsureIndicesCreatedAsync().GetAwaiter().GetResult();
         }
 
+        #endregion
+
+        #region IQueryableUserStore
+        public virtual IQueryable<TUser> Users
+            => _usersCollection.AsQueryable();
         #endregion
 
         #region CreateAsync
@@ -1397,7 +1404,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         public void Dispose()
         {
             _disposed = true;
-        } 
+        }
         #endregion
     }
 }
