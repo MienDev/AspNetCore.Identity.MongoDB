@@ -12,58 +12,44 @@ using MongoDB.Driver;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
-    public class MongoUserStore<TUser> :
-            IUserStore<TUser>,
+    public class UserStoreB<TUser, TRole> :
             IUserLoginStore<TUser>,
+            IUserRoleStore<TUser>,
             IUserClaimStore<TUser>,
             IUserPasswordStore<TUser>,
             IUserSecurityStampStore<TUser>,
-            IUserTwoFactorStore<TUser>,
             IUserEmailStore<TUser>,
             IUserLockoutStore<TUser>,
             IUserPhoneNumberStore<TUser>,
-            IQueryableUserStore<TUser>
-        where TUser : MongoIdentityUser
+            IQueryableUserStore<TUser>,
+            IUserTwoFactorStore<TUser>,
+            IUserAuthenticationTokenStore<TUser>
+        where TUser : IdentityUser
 
     {
+        public IQueryable<TUser> Users => _users.AsQueryable();
+
         #region Privates and contructor
 
         private bool _disposed;
-        private static bool _initialized;
-       private static object _initializationLock = new object();
-       private static object _initializationTarget;
-        private readonly IMongoCollection<TUser> _usersCollection;
+        private readonly IMongoCollection<TUser> _users;
         private readonly ILogger _logger;
-       // private IQueryableUserStore<TUser> _queryableUserStoreImplementation;
 
-        static MongoUserStore()
+        private bool _initialized;
+        private object _initializationLock = new object();
+        private object _initializationTarget;
+
+        public UserStoreB(IMongoDatabase db, ILoggerFactory loggerFactory)
         {
-            MongoConfig.EnsureConfigured();
-        }
-
-        public MongoUserStore(IMongoDatabase database, ILoggerFactory loggerFactory)
-        {
-            if (database == null)
-            {
-                throw new ArgumentNullException(nameof(database));
-            }
-
-            if (loggerFactory == null)
-            {
-                throw new ArgumentNullException(nameof(loggerFactory));
-            }
-
-            _usersCollection = database.GetCollection<TUser>("users");
+            ThrowIfParaNull(db);
+            EnsureIndicesCreatedAsync().GetAwaiter().GetResult();
+            var docType = typeof(TUser);
+            _users = db.GetCollection<TUser>(docType.ToString());
             _logger = loggerFactory.CreateLogger(GetType().Name);
 
             EnsureIndicesCreatedAsync().GetAwaiter().GetResult();
         }
 
-        #endregion
-
-        #region IQueryableUserStore
-        public virtual IQueryable<TUser> Users
-            => _usersCollection.AsQueryable();
         #endregion
 
         #region CreateAsync
@@ -75,7 +61,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the creation operation.</returns>
         public async Task<IdentityResult> CreateAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -86,7 +72,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await _usersCollection.InsertOneAsync(user, null, cancellationToken).ConfigureAwait(false);
+            await _users.InsertOneAsync(user, null, cancellationToken).ConfigureAwait(false);
 
             return IdentityResult.Success;
         }
@@ -102,7 +88,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the update operation.</returns>
         public async Task<IdentityResult> UpdateAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -119,10 +105,10 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Builders<TUser>.Filter.Eq(u => u.DeletedOn, null)
             );
 
-            var replaceResult = await _usersCollection.ReplaceOneAsync(
+            var replaceResult = await _users.ReplaceOneAsync(
                     query, user,
-                    new UpdateOptions { IsUpsert = false }, // no insertion if not exsist
-                    cancellationToken = default(CancellationToken))
+                    new UpdateOptions {IsUpsert = false}, // no insertion if not exsist
+                    cancellationToken)
                 .ConfigureAwait(continueOnCapturedContext: false);
 
             return replaceResult.IsModifiedCountAvailable && replaceResult.ModifiedCount == 1
@@ -141,7 +127,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the <see cref="IdentityResult"/> of the update operation.</returns>
         public async Task<IdentityResult> DeleteAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -158,8 +144,8 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             var update = Builders<TUser>.Update.Set(u => u.DeletedOn, user.DeletedOn);
 
             await
-                _usersCollection.UpdateOneAsync(query, update,
-                        cancellationToken: cancellationToken = default(CancellationToken))
+                _users.UpdateOneAsync(query, update,
+                        cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
             return IdentityResult.Success;
@@ -178,7 +164,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// The <see cref="Task"/> that represents the asynchronous operation, containing the user matching the specified <paramref name="userId"/> if it exists.
         /// </returns>
         public virtual Task<TUser> FindByIdAsync(string userId,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -194,13 +180,15 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Builders<TUser>.Filter.Eq(u => u.DeletedOn, null)
             );
 
-            return _usersCollection.Find(query).FirstOrDefaultAsync(cancellationToken);
+            return _users.Find(query).FirstOrDefaultAsync(cancellationToken);
         }
 
         #endregion
 
         #region UserName
+
         #region FindByNameAsync
+
         /// <summary>
         /// Finds and returns a user, if any, who has the specified normalized user name.
         /// </summary>
@@ -210,7 +198,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// The <see cref="Task"/> that represents the asynchronous operation, containing the user matching the specified <paramref name="normalizedUserName"/> if it exists.
         /// </returns>
         public virtual Task<TUser> FindByNameAsync(string normalizedUserName,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -226,7 +214,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Builders<TUser>.Filter.Eq(u => u.DeletedOn, null)
             );
 
-            return _usersCollection.Find(query).FirstOrDefaultAsync(cancellationToken);
+            return _users.Find(query).FirstOrDefaultAsync(cancellationToken);
         }
 
         #endregion
@@ -240,7 +228,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the normalized user name for the specified <paramref name="user"/>.</returns>
         public virtual Task<string> GetNormalizedUserNameAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -263,7 +251,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the identifier for the specified <paramref name="user"/>.</returns>
         public virtual Task<string> GetUserIdAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -286,7 +274,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the name for the specified <paramref name="user"/>.</returns>
         public Task<string> GetUserNameAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -310,7 +298,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the normalized user name for the specified <paramref name="user"/>.</returns>
         public virtual Task SetNormalizedUserNameAsync(TUser user, string normalizedName,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -341,7 +329,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public virtual Task SetUserNameAsync(TUser user, string userName,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -353,13 +341,15 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             }
             user.UserName = userName;
             // return TaskCache.CompletedTask;
-            return Task.CompletedTask;
+            return Task.CompletedTask; //.CompletedTask;
         }
 
-        #endregion 
+        #endregion
+
         #endregion
 
         #region Logins
+
         #region AddLoginAsync
 
         /// <summary>
@@ -370,7 +360,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task AddLoginAsync(TUser user, UserLoginInfo login,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -393,7 +383,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 throw new InvalidOperationException("Login already exists.");
             }
 
-            user.AddLogin(new MongoUserLogin(login));
+            user.AddLogin(new UserLogin(login));
 
             return Task.FromResult(0);
         }
@@ -411,7 +401,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task RemoveLoginAsync(TUser user, string loginProvider, string providerKey,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -458,7 +448,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// The <see cref="Task"/> for the asynchronous operation, containing a list of <see cref="UserLoginInfo"/> for the specified <paramref name="user"/>, if any.
         /// </returns>
         public Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -490,7 +480,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// The <see cref="Task"/> for the asynchronous operation, containing the user, if any which matched the specified login provider and key.
         /// </returns>
         public Task<TUser> FindByLoginAsync(string loginProvider, string providerKey,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -507,22 +497,25 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             var notDeletedQuery = Builders<TUser>.Filter.Eq(u => u.DeletedOn, null);
             var loginQuery = Builders<TUser>.Filter.ElemMatch(usr => usr.Logins,
-                Builders<MongoUserLogin>.Filter.And(
-                    Builders<MongoUserLogin>.Filter.Eq(lg => lg.LoginProvider, loginProvider),
-                    Builders<MongoUserLogin>.Filter.Eq(lg => lg.ProviderKey, providerKey)
+                Builders<UserLogin>.Filter.And(
+                    Builders<UserLogin>.Filter.Eq(lg => lg.LoginProvider, loginProvider),
+                    Builders<UserLogin>.Filter.Eq(lg => lg.ProviderKey, providerKey)
                 )
             );
 
             var query = Builders<TUser>.Filter.And(notDeletedQuery, loginQuery);
 
-            return _usersCollection.Find(query).FirstOrDefaultAsync(cancellationToken);
+            return _users.Find(query).FirstOrDefaultAsync(cancellationToken);
         }
 
-        #endregion 
+        #endregion
+
         #endregion
 
         #region Claims
+
         #region GetClaimsAsync
+
         /// <summary>
         /// Get the claims associated with the specified <paramref name="user"/> as an asynchronous operation.
         /// </summary>
@@ -530,7 +523,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>A <see cref="Task{TResult}"/> that contains the claims granted to a user.</returns>
         public Task<IList<Claim>> GetClaimsAsync(TUser user,
-    CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -543,9 +536,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult<IList<Claim>>(claims);
         }
+
         #endregion
 
         #region AddClaimsAsync
+
         /// <summary>
         /// Adds the <paramref name="claims"/> given to the specified <paramref name="user"/>.
         /// </summary>
@@ -554,7 +549,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task AddClaimsAsync(TUser user, IEnumerable<Claim> claims,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -576,12 +571,13 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region ReplaceClaimAsync
 
         public Task ReplaceClaimAsync(TUser user, Claim claim, Claim newClaim,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -600,17 +596,18 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 throw new ArgumentNullException(nameof(newClaim));
             }
 
-            user.RemoveClaim(new MongoUserClaim(claim));
+            user.RemoveClaim(new UserClaim(claim));
             user.AddClaim(newClaim);
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region RemoveClaimsAsync
 
         public Task RemoveClaimsAsync(TUser user, IEnumerable<Claim> claims,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -626,14 +623,16 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             foreach (var claim in claims)
             {
-                user.RemoveClaim(new MongoUserClaim(claim));
+                user.RemoveClaim(new UserClaim(claim));
             }
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region GetUsersForClaimAsync
+
         /// <summary>
         /// Retrieves all users with the specified claim.
         /// </summary>
@@ -643,7 +642,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// The <see cref="Task"/> contains a list of users, if any, that contain the specified claim. 
         /// </returns>
         public async Task<IList<TUser>> GetUsersForClaimAsync(Claim claim,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -654,26 +653,29 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             var notDeletedQuery = Builders<TUser>.Filter.Eq(u => u.DeletedOn, null);
             var claimQuery = Builders<TUser>.Filter.ElemMatch(usr => usr.Claims,
-                Builders<MongoUserClaim>.Filter.And(
-                    Builders<MongoUserClaim>.Filter.Eq(c => c.ClaimType, claim.Type),
-                    Builders<MongoUserClaim>.Filter.Eq(c => c.ClaimValue, claim.Value)
+                Builders<UserClaim>.Filter.And(
+                    Builders<UserClaim>.Filter.Eq(c => c.ClaimType, claim.Type),
+                    Builders<UserClaim>.Filter.Eq(c => c.ClaimValue, claim.Value)
                 )
             );
 
             var query = Builders<TUser>.Filter.And(notDeletedQuery, claimQuery);
-            var users = await _usersCollection
+            var users = await _users
                 .FindSync(query, null, cancellationToken)
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
 
             return users;
         }
+
         #endregion
 
         #endregion
 
         #region Email
+
         #region SetEmailAsync
+
         /// <summary>
         /// Sets the <paramref name="email"/> address for a <paramref name="user"/>.
         /// </summary>
@@ -682,7 +684,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
         public Task SetEmailAsync(TUser user, string email,
-    CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -700,16 +702,18 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             // return TaskCache.CompletedTask;
             return Task.CompletedTask;
         }
+
         #endregion
 
         #region GetEmailAsync
+
         /// <summary>
         /// Gets the email address for the specified <paramref name="user"/>.
         /// </summary>
         /// <param name="user">The user whose email should be returned.</param>
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The task object containing the results of the asynchronous operation, the email address for the specified <paramref name="user"/>.</returns>
-        public Task<string> GetEmailAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<string> GetEmailAsync(TUser user, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -722,9 +726,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(email);
         }
+
         #endregion
 
         #region GetEmailConfirmedAsync
+
         /// <summary>
         /// Gets a flag indicating whether the email address for the specified <paramref name="user"/> has been verified, true if the email address is verified otherwise
         /// false.
@@ -736,7 +742,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// has been confirmed or not.
         /// </returns>
         public Task<bool> GetEmailConfirmedAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -753,9 +759,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.Email.IsComfirmed);
         }
+
         #endregion
 
         #region SetEmailConfirmedAsync
+
         /// <summary>
         /// Sets the flag indicating whether the specified <paramref name="user"/>'s email address has been confirmed or not.
         /// </summary>
@@ -764,7 +772,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
         public Task SetEmailConfirmedAsync(TUser user, bool confirmed,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -785,14 +793,16 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             }
             else
             {
-                user.Email.SetUnConfirmed();//.SetUnconfirmed();
+                user.Email.SetUnConfirmed(); //.SetUnconfirmed();
             }
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region FindByEmailAsync
+
         /// <summary>
         /// Gets the user, if any, associated with the specified, normalized email address.
         /// </summary>
@@ -802,7 +812,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// The task object containing the results of the asynchronous lookup operation, the user if any associated with the specified normalized email address.
         /// </returns>
         public Task<TUser> FindByEmailAsync(string normalizedEmail,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -816,11 +826,13 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Builders<TUser>.Filter.Eq(u => u.DeletedOn, null)
             );
 
-            return _usersCollection.Find(query).FirstOrDefaultAsync(cancellationToken);
+            return _users.Find(query).FirstOrDefaultAsync(cancellationToken);
         }
+
         #endregion
 
         #region GetNormalizedEmailAsync
+
         /// <summary>
         /// Returns the normalized email for the specified <paramref name="user"/>.
         /// </summary>
@@ -830,7 +842,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// The task object containing the results of the asynchronous lookup operation, the normalized email address if any associated with the specified user.
         /// </returns>
         public Task<string> GetNormalizedEmailAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -843,9 +855,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(normalizedEmail);
         }
+
         #endregion
 
         #region SetNormalizedEmailAsync
+
         /// <summary>
         /// Sets the normalized email for the specified <paramref name="user"/>.
         /// </summary>
@@ -854,7 +868,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The task object representing the asynchronous operation.</returns>
         public Task SetNormalizedEmailAsync(TUser user, string normalizedEmail,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -875,12 +889,14 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             return Task.FromResult(0);
         }
 
-        #endregion 
+        #endregion
+
         #endregion
 
         #region PhoneNumber
 
         #region SetPhoneNumberAsync
+
         /// <summary>
         /// Sets the telephone number for the specified <paramref name="user"/>.
         /// </summary>
@@ -889,7 +905,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task SetPhoneNumberAsync(TUser user, string phoneNumber,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -907,9 +923,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region GetPhoneNumberAsync
+
         /// <summary>
         /// Gets the telephone number, if any, for the specified <paramref name="user"/>.
         /// </summary>
@@ -917,7 +935,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the user's telephone number, if any.</returns>
         public Task<string> GetPhoneNumberAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -928,9 +946,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.PhoneNumber?.Value);
         }
+
         #endregion
 
         #region GetPhoneNumberConfirmedAsync
+
         /// <summary>
         /// Gets a flag indicating whether the specified <paramref name="user"/>'s telephone number has been confirmed.
         /// </summary>
@@ -941,7 +961,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// telephone number otherwise false.
         /// </returns>
         public Task<bool> GetPhoneNumberConfirmedAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -958,9 +978,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.PhoneNumber.IsComfirmed);
         }
+
         #endregion
 
         #region SetPhoneNumberConfirmedAsync
+
         /// <summary>
         /// Sets a flag indicating if the specified <paramref name="user"/>'s phone number has been confirmed..
         /// </summary>
@@ -969,7 +991,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task SetPhoneNumberConfirmedAsync(TUser user, bool confirmed,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -987,7 +1009,8 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             user.PhoneNumber.SetConfirmed();
 
             return Task.FromResult(0);
-        } 
+        }
+
         #endregion
 
         #endregion
@@ -995,8 +1018,9 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         #region Security Pasword and SecurityStamp
 
         #region SetPasswordHashAsync
+
         public Task SetPasswordHashAsync(TUser user, string passwordHash,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1009,11 +1033,13 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region GetPasswordHashAsync
+
         public Task<string> GetPasswordHashAsync(TUser user,
-    CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1024,11 +1050,12 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.PasswordHash);
         }
+
         #endregion
 
         #region HasPasswordAsync
 
-        public Task<bool> HasPasswordAsync(TUser user, CancellationToken cancellationToken = default(CancellationToken))
+        public Task<bool> HasPasswordAsync(TUser user, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1039,9 +1066,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.PasswordHash != null);
         }
+
         #endregion
 
         #region SetSecurityStampAsync
+
         /// <summary>
         /// Sets the provided security <paramref name="stamp"/> for the specified <paramref name="user"/>.
         /// </summary>
@@ -1050,7 +1079,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task SetSecurityStampAsync(TUser user, string stamp,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1068,9 +1097,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region GetSecurityStampAsync
+
         /// <summary>
         /// Get the security stamp for the specified <paramref name="user" />.
         /// </summary>
@@ -1078,7 +1109,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the security stamp for the specified <paramref name="user"/>.</returns>
         public Task<string> GetSecurityStampAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1089,9 +1120,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.SecurityStamp);
         }
+
         #endregion
 
         #region SetTwoFactorEnabledAsync
+
         /// <summary>
         /// Sets a flag indicating whether the specified <paramref name="user"/> has two factor authentication enabled or not,
         /// as an asynchronous operation.
@@ -1101,7 +1134,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task SetTwoFactorEnabledAsync(TUser user, bool enabled,
-    CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1121,9 +1154,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region GetTwoFactorEnabledAsync
+
         /// <summary>
         /// Returns a flag indicating whether the specified <paramref name="user"/> has two factor authentication enabled or not,
         /// as an asynchronous operation.
@@ -1135,7 +1170,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <paramref name="user"/> has two factor authentication enabled or not.
         /// </returns>
         public Task<bool> GetTwoFactorEnabledAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1146,6 +1181,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.TwoFactorEnabled);
         }
+
         #endregion
 
         #endregion
@@ -1153,6 +1189,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         #region Access failure and Lockout
 
         #region GetLockoutEndDateAsync
+
         /// <summary>
         /// Gets the last <see cref="DateTimeOffset"/> a user's last lockout expired, if any.
         /// Any time in the past should be indicates a user is not locked out.
@@ -1164,7 +1201,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// a user's lockout expired, if any.
         /// </returns>
         public Task<DateTimeOffset?> GetLockoutEndDateAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1180,9 +1217,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(lockoutEndDate);
         }
+
         #endregion
 
         #region SetLockoutEndDateAsync
+
         /// <summary>
         /// Locks out a user until the specified end date has passed. Setting a end date in the past immediately unlocks a user.
         /// </summary>
@@ -1191,7 +1230,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task SetLockoutEndDateAsync(TUser user, DateTimeOffset? lockoutEnd,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1207,9 +1246,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region IncrementAccessFailedCountAsync
+
         /// <summary>
         /// Records that a failed access has occurred, incrementing the failed access count.
         /// </summary>
@@ -1217,7 +1258,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the incremented failed access count.</returns>
         public async Task<int> IncrementAccessFailedCountAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1234,7 +1275,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
                 Projection = Builders<TUser>.Projection.Expression(usr => usr.AccessFailedCount)
             };
 
-            var newCount = await _usersCollection
+            var newCount = await _users
                 .FindOneAndUpdateAsync(filter, update, findOneAndUpdateOptions, cancellationToken)
                 .ConfigureAwait(false);
 
@@ -1242,9 +1283,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return newCount;
         }
+
         #endregion
 
         #region ResetAccessFailedCountAsync
+
         /// <summary>
         /// Resets a user's failed access count.
         /// </summary>
@@ -1253,7 +1296,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         /// <remarks>This is typically called after the account is successfully accessed.</remarks>
         public virtual Task ResetAccessFailedCountAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1266,9 +1309,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(0);
         }
+
         #endregion
 
         #region GetAccessFailedCountAsync
+
         /// <summary>
         /// Retrieves the current failed access count for the specified <paramref name="user"/>..
         /// </summary>
@@ -1276,7 +1321,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation, containing the failed access count.</returns>
         public Task<int> GetAccessFailedCountAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1287,9 +1332,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.AccessFailedCount);
         }
+
         #endregion
 
         #region GetLockoutEnabledAsync
+
         /// <summary>
         /// Retrieves a flag indicating whether user lockout can enabled for the specified user.
         /// </summary>
@@ -1299,7 +1346,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// The <see cref="Task"/> that represents the asynchronous operation, true if a user can be locked out, otherwise false.
         /// </returns>
         public Task<bool> GetLockoutEnabledAsync(TUser user,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1310,9 +1357,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(user.LockoutEnabled);
         }
+
         #endregion
 
         #region SetLockoutEnabledAsync
+
         /// <summary>
         /// Set the flag indicating if the specified <paramref name="user"/> can be locked out..
         /// </summary>
@@ -1321,7 +1370,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <param name="cancellationToken">The <see cref="CancellationToken"/> used to propagate notifications that the operation should be canceled.</param>
         /// <returns>The <see cref="Task"/> that represents the asynchronous operation.</returns>
         public Task SetLockoutEnabledAsync(TUser user, bool enabled,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
             ThrowIfDisposed();
@@ -1341,7 +1390,53 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             return Task.FromResult(0);
         }
+
         #endregion
+
+        #endregion
+
+        #region ThrowIf
+
+        /// <summary>
+        /// Throws if this class has been disposed.
+        /// </summary>
+        protected void ThrowIfDisposed()
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(GetType().Name);
+            }
+        }
+
+        /// <summary>
+        /// Dispose the stores
+        /// </summary>
+        public void Dispose()
+        {
+            _disposed = true;
+        }
+
+        private void ThrowIfParaNull(params object[] para)
+        {
+            if (para.Length > 0 && para.Any(p => p == null))
+            {
+                throw new ArgumentNullException(nameof(para));
+            }
+        }
+
+        /// <summary>
+        /// ThrowIfCancelOrNull
+        /// </summary>
+        /// <param name="cancellationToken"></param>
+        /// <param name="paras"></param>
+        private void ThrowIfCancelOrParaNull(CancellationToken cancellationToken, params object[] paras)
+        {
+            ThrowIfDisposed();
+
+            cancellationToken.ThrowIfCancellationRequested();
+
+            ThrowIfParaNull(paras);
+        }
 
         #endregion
 
@@ -1350,11 +1445,11 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         private async Task EnsureIndicesCreatedAsync()
         {
             var obj = LazyInitializer.EnsureInitialized(ref _initializationTarget, ref _initialized,
-                ref _initializationLock, () => { return EnsureIndicesCreatedImplAsync(); });
+                ref _initializationLock, EnsureIndicesCreatedImplAsync);
 
             if (obj != null)
             {
-                var taskToAwait = (Task)obj;
+                var taskToAwait = (Task) obj;
                 await taskToAwait.ConfigureAwait(false);
             }
         }
@@ -1375,9 +1470,9 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
             var tasks = new[]
             {
-                _usersCollection.Indexes.CreateOneAsync(emailKeyBuilder,
+                _users.Indexes.CreateOneAsync(emailKeyBuilder,
                     new CreateIndexOptions {Unique = true, Name = indexNames.UniqueEmail}),
-                _usersCollection.Indexes.CreateOneAsync(loginKeyBuilder,
+                _users.Indexes.CreateOneAsync(loginKeyBuilder,
                     new CreateIndexOptions {Name = indexNames.Login})
             };
 
@@ -1386,25 +1481,134 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         #endregion
 
-        #region Dispose
-        /// <summary>
-        /// Throws if this class has been disposed.
-        /// </summary>
-        protected void ThrowIfDisposed()
-        {
-            if (_disposed)
-            {
-                throw new ObjectDisposedException(GetType().Name);
-            }
-        }
+        #region AddToRoleAsync of IUserRoleStore<TUser>
 
         /// <summary>
-        /// Dispose the store
+        /// Add a the specified <paramref name="user" /> to the named role.
         /// </summary>
-        public void Dispose()
+        /// <param name="user">The user to add to the named role.</param>
+        /// <param name="roleName">The name of the role to add the user to.</param>
+        /// <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken" /> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation.</returns>
+        public Task AddToRoleAsync(TUser user, string roleName, CancellationToken cancellationToken)
         {
-            _disposed = true;
+            throw new NotImplementedException();
         }
+
+        #endregion
+
+        #region RemoveFromRoleAsync of IUserRoleStore<TUser>
+
+        /// <summary>
+        /// Add a the specified <paramref name="user" /> from the named role.
+        /// </summary>
+        /// <param name="user">The user to remove the named role from.</param>
+        /// <param name="roleName">The name of the role to remove.</param>
+        /// <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken" /> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation.</returns>
+        public Task RemoveFromRoleAsync(TUser user, string roleName, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Implementation of IUserRoleStore<TUser>
+
+        /// <summary>
+        /// Gets a list of role names the specified <paramref name="user" /> belongs to.
+        /// </summary>
+        /// <param name="user">The user whose role names to retrieve.</param>
+        /// <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken" /> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation, containing a list of role names.</returns>
+        public Task GetRolesAsync(TUser user, CancellationToken cancellationToken)
+        {
+            //await user.Roles;
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Implementation of IUserRoleStore<TUser>
+
+        /// <summary>
+        /// Returns a flag indicating whether the specified <paramref name="user" /> is a member of the give named role.
+        /// </summary>
+        /// <param name="user">The user whose role membership should be checked.</param>
+        /// <param name="roleName">The name of the role to be checked.</param>
+        /// <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken" /> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation, containing a flag indicating whether the specified <paramref name="user" /> is
+        /// a member of the named role.
+        /// </returns>
+        public Task IsInRoleAsync(TUser user, string roleName, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Implementation of IUserRoleStore<TUser>
+
+        /// <summary>
+        /// Returns a list of Users who are members of the named role.
+        /// </summary>
+        /// <param name="roleName">The name of the role whose membership should be returned.</param>
+        /// <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken" /> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>
+        /// The <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation, containing a list of users who are in the named role.
+        /// </returns>
+        public Task GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Implementation of IUserAuthenticationTokenStore<TUser>
+
+        /// <summary>Sets the token value for a particular user.</summary>
+        /// <param name="user">The user.</param>
+        /// <param name="loginProvider">The authentication provider for the token.</param>
+        /// <param name="name">The name of the token.</param>
+        /// <param name="value">The value of the token.</param>
+        /// <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken" /> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation.</returns>
+        public Task SetTokenAsync(TUser user, string loginProvider, string name, string value,
+            CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Implementation of IUserAuthenticationTokenStore<TUser>
+
+        /// <summary>Deletes a token for a user.</summary>
+        /// <param name="user">The user.</param>
+        /// <param name="loginProvider">The authentication provider for the token.</param>
+        /// <param name="name">The name of the token.</param>
+        /// <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken" /> used to propagate notifications that the operation should be canceled.</param>
+        public Task RemoveTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
+
+        #region Implementation of IUserAuthenticationTokenStore<TUser>
+
+        /// <summary>Returns the token value.</summary>
+        /// <param name="user">The user.</param>
+        /// <param name="loginProvider">The authentication provider for the token.</param>
+        /// <param name="name">The name of the token.</param>
+        /// <param name="cancellationToken">The <see cref="T:System.Threading.CancellationToken" /> used to propagate notifications that the operation should be canceled.</param>
+        /// <returns>The <see cref="T:System.Threading.Tasks.Task" /> that represents the asynchronous operation.</returns>
+        public Task GetTokenAsync(TUser user, string loginProvider, string name, CancellationToken cancellationToken)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 }

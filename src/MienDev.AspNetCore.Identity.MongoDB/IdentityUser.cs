@@ -8,6 +8,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
+    #region IdentityUser
     /// <summary>
     /// Identity User with default role type
     /// </summary>
@@ -16,6 +17,9 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         public IdentityUser() : base() { }
         public IdentityUser(string userName) : base(userName) { }
     }
+    #endregion
+
+    #region IdentityUser<TUserRole>
 
     /// <summary>
     /// Class for Identity User
@@ -23,9 +27,8 @@ namespace MienDev.AspNetCore.Identity.MongoDB
     /// </summary>
     public class IdentityUser<TUserRole>
     {
-        //private readonly List<MongoUserClaim> _claims;
-        //private readonly List<MongoUserLogin> _logins;
 
+        #region Contructor
         /// <summary>
         /// Initializes a new instance of <see cref="IdentityUser"/>.
         /// </summary>
@@ -54,6 +57,9 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             Email = new UserEmail(userEmail);
         }
 
+        #endregion
+
+
         /// <summary>
         /// Gets or sets the primary key for this user.
         /// </summary>
@@ -73,19 +79,18 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// <summary>
         /// Gets or sets the email address for this user.
         /// </summary>
-        public UserEmail Email { get; set; }
-
-
-        /// <summary>
-        /// Gets or sets the normalized email address for this user.
-        /// </summary>
-        public virtual string NormalizedEmail { get; set; }
+        public virtual UserEmail Email { get; set; }
 
         /// <summary>
-        /// Gets or sets a flag indicating if a user has confirmed their email address.
+        /// Gets or sets a telephone number for the user.
         /// </summary>
-        /// <value>True if the email address has been confirmed, otherwise false.</value>
-        public virtual bool EmailConfirmed { get; set; }
+        public virtual UserMobile PhoneNumber { get; set; }
+
+        /// <summary>
+        /// Gets or sets a flag indicating if two factor authentication is enabled for this user.
+        /// </summary>
+        /// <value>True if 2fa is enabled, otherwise false.</value>
+        public virtual bool TwoFactorEnabled { get; set; }
 
         /// <summary>
         /// Gets or sets a salted and hashed representation of the password for this user.
@@ -102,23 +107,6 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// </summary>
         public virtual string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString();
 
-        /// <summary>
-        /// Gets or sets a telephone number for the user.
-        /// </summary>
-        public virtual UserContactRecord PhoneNumber { get; set; }
-
-        /// <summary>
-        /// Gets or sets a flag indicating if a user has confirmed their telephone address.
-        /// </summary>
-        /// <value>True if the telephone number has been confirmed, otherwise false.</value>
-        public virtual bool PhoneNumberConfirmed { get; set; }
-
-        /// <summary>
-        /// Gets or sets a flag indicating if two factor authentication is enabled for this user.
-        /// </summary>
-        /// <value>True if 2fa is enabled, otherwise false.</value>
-        public virtual bool TwoFactorEnabled { get; set; }
-
         #region LockoutEnabled
         /// <summary>
         /// Gets or sets the date and time, in UTC, when any user lockout ends.
@@ -133,6 +121,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         /// </summary>
         /// <value>True if the user could be locked out, otherwise false.</value>
         public virtual bool LockoutEnabled { get; set; }
+           //  => LockoutEnd.HasValue && LockoutEnd.Value.ToUniversalTime().Subtract(DateTime.UtcNow).TotalSeconds > 0;
 
         /// <summary>
         /// Gets or sets the number of failed login attempts for the current user.
@@ -200,25 +189,10 @@ namespace MienDev.AspNetCore.Identity.MongoDB
         }
         #endregion
 
+
         public virtual void SetEmail(string email)
         {
-            var mongoUserEmail = new UserEmail(email);
-            SetEmail(mongoUserEmail);
-        }
-
-        public virtual void SetEmail(UserEmail mongoUserEmail)
-        {
-            Email = mongoUserEmail;
-        }
-
-        public virtual void SetNormalizedUserName(string normalizedUserName)
-        {
-            if (normalizedUserName == null)
-            {
-                throw new ArgumentNullException(nameof(normalizedUserName));
-            }
-
-            NormalizedUserName = normalizedUserName;
+            Email = new UserEmail(email);
         }
 
         public virtual void SetPhoneNumber(string phoneNumber)
@@ -289,10 +263,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB
 
         public virtual void AddLogin(UserLogin mongoUserLogin)
         {
-            if (mongoUserLogin == null)
-            {
-                throw new ArgumentNullException(nameof(mongoUserLogin));
-            }
+            mongoUserLogin.ThrowIfNull($"{nameof(mongoUserLogin)} is required.");
 
             Logins.Add(mongoUserLogin);
         }
@@ -322,5 +293,10 @@ namespace MienDev.AspNetCore.Identity.MongoDB
             return Guid.NewGuid().ToString("N");
             //return userName.ToLower();
         }
+
+
+
     }
+
+    #endregion
 }

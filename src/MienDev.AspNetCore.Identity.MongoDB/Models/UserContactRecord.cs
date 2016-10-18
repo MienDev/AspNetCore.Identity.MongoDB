@@ -27,7 +27,7 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
         /// <summary>
         /// return is the contact info 
         /// </summary>
-        public bool IsComfirmed { get; set; }
+        public bool IsComfirmed => !ConfirmedOn.HasValue;
 
         /// <summary>
         /// return or set the UTC time on Confirm Occurrance.
@@ -44,14 +44,12 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
         /// <param name="timeOn"></param>
         public void SetConfirmed(DateTime? timeOn = null)
         {
-            IsComfirmed = true;
-            ConfirmedOn = timeOn ?? DateTime.UtcNow;
+            ConfirmedOn = timeOn;
         }
 
         public void SetUnConfirmed(DateTime? timeOn = null)
         {
-            IsComfirmed = false;
-            ConfirmedOn = null;
+            ConfirmedOn = timeOn;
         }
 
         /// <summary>

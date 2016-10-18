@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using MienDev.AspNetCore.Identity.MongoDB;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MienDev.AspNetCore.Identity.MongoDB.Utils;
+using MongoDB.Bson.IO;
 using MongoDB.Driver;
 
 // ReSharper disable once CheckNamespace
@@ -15,7 +16,7 @@ namespace Microsoft.Extensions.DependencyInjection
     public static class MongoIdentityOptionBuilderExtentsion
     {
         /// <summary>
-        /// Make MongoDb Resolvable, and add MongoDBIdentity.
+        /// Config MongoDb Resolvable, and add MongoDBIdentity.
         /// </summary>
         /// <typeparam name="TUser"></typeparam>
         /// <typeparam name="TRole"></typeparam>
@@ -80,7 +81,9 @@ namespace Microsoft.Extensions.DependencyInjection
 
         private static IServiceCollection GetDefaultServices(Type userType, Type roleType)
         {
+
             // 1. get interface type IUserStore<>, IRoleStore<>
+            var contextType = typeof(IdentityDbContext<,>).MakeGenericType(userType, roleType);
             var userStoreInterfaceType = typeof(IUserStore<>).MakeGenericType(userType);
             if (userStoreInterfaceType == null) throw new ArgumentNullException(nameof(userStoreInterfaceType));
 
@@ -88,9 +91,9 @@ namespace Microsoft.Extensions.DependencyInjection
             if (roleStoreInterfaceType == null) throw new ArgumentNullException(nameof(roleStoreInterfaceType));
 
             // 2. get class type 
-            var userStoreType = typeof(UserStore<,>).MakeGenericType(userType, roleType);
+            var userStoreType = typeof(UserStore<,,>).MakeGenericType(userType, roleType, contextType);
             var roleStoreType = typeof(RoleStore<>).MakeGenericType(roleType);
- 
+
             // 3. add to some new service collection
             var services = new ServiceCollection();
             services.AddScoped(userStoreInterfaceType, userStoreType);

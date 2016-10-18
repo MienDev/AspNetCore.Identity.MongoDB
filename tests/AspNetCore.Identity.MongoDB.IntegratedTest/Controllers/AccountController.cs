@@ -44,6 +44,8 @@ namespace AspNetCore.Identity.MongoDB.IntegratedTest.Controllers
         [AllowAnonymous]
         public IActionResult Login(string returnUrl = null)
         {
+            var users = _userManager.Users.ToList();
+            ViewData["users"] = users;
             ViewData["ReturnUrl"] = returnUrl;
             return View();
         }

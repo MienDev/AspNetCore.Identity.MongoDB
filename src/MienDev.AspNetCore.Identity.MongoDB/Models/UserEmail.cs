@@ -10,17 +10,23 @@ namespace MienDev.AspNetCore.Identity.MongoDB.Models
     [TypeConverter(typeof(UserEmailConverter))]
     public class UserEmail : UserContactRecord
     {
-        #region Constructor
+        #region Contructor
+        public UserEmail()
+        {
+            base.Type = ContactType.Email;
+        }
+
         public UserEmail(string email = null)
         {
-            if (email.IsEmpty())
-            {
-                throw new ArgumentException($"{nameof(email)} is required.");
-            }
+            email.ThrowIfStringEmpty($"{nameof(email)} is required.");
+
             Value = email;
         }
         #endregion
 
+        /// <summary>
+        /// Indicate the contact record type, such as mobile, email, telephone.
+        /// </summary>
         public override ContactType Type => ContactType.Email;
 
         public void SetNormalizedEmail(string normalizedEmail)

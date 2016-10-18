@@ -5,11 +5,8 @@ using System.Threading.Tasks;
 
 namespace MienDev.AspNetCore.Identity.MongoDB
 {
-    public class MongoOption
+    public class MongoIdentityConst
     {
-        public string ConnectString { get; set; }
-
-       public string Database { get; set; }
-
+        public const string UserCollectionName = "users";
     }
 }
